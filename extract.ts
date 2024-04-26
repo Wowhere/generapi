@@ -3,18 +3,33 @@ import fs from "fs";
 
 const apiFile = "./webclientapitests/api.ts";
 const folderPath = "./tests";
+//^^^ as target for substitution
+const importCode = "import {expect, test} from '@jest/globals';\r\nimport { ^^^ } from '../api'\r\n\r\n";
 
-const importCode = "import {expect, test} from '@jest/globals';\r\n\r\n";
-
-const testTemplate = "test(\"\", async () => {})";
+const testTemplate = "test(\"^^^\", async () => {^^^})";
+const debug = false;
 
 function append(fileName: string, text: string) {
-  fs.appendFile(fileName, text+'\r\n', function(err: any) {
+  if (debug) {
+    console.log(text);
+  } else {
+    fs.appendFile(fileName, text+'\r\n', function(err: any) {
+      if (err) throw err;
+      console.log(err);
+      });
+  }
+}
+
+function createFile(fileName: string, text: string) {
+  if (debug) {
+    console.log(text);
+  } else {
+  fs.writeFile(fileName, text, function(err: any) {
     if (err) throw err;
     console.log(err);
     });
+  }
 }
-
 
 
 function findInterfaceNode(sourceFile: ts.SourceFile, interfaceName: string): ts.InterfaceDeclaration | undefined {
@@ -44,60 +59,29 @@ function getClassMethodsWithSignature(sourceFile: ts.SourceFile): string[] {
         const className = node.name.text;
         if (className) {    
           const classNameFile = `${folderPath}/${className}`+'.ts';    
-          fs.writeFile(classNameFile, importCode, function(err: any) {
-            if (err) throw err;
-            console.log(err);
-            }
-        );
+          createFile(classNameFile, importCode);
         ts.forEachChild(node, (member) => {            
           if (ts.isMethodDeclaration(member)) {
               const methodName = member.name.getText();
               if (methodName) {
                   append(classNameFile, ` Method ${methodName}`);
-                  //console.log(methodName);
                   methodNames.push(methodName);  
               }
               member.parameters.forEach((param, index) => {
                 const paramName = param.name.getText();
                 const paramType = param.type?.getText();
-
                 append(classNameFile, ` Param ${index + 1}: ${paramName} (${paramType})`);
-
-                //console.log(` Param ${index + 1}: ${paramName} (${paramType})`);
                 let interfaceNode = findInterfaceNode(sourceFile, paramType as string);
                 if (interfaceNode) {
                   append(classNameFile, ` Interface ${interfaceNode.name.text}`);
-                  //console.log(` Interface ${interfaceNode.name.text}`);
                 }
             });
+          } else {
+            console.log(`Why not a method? Example: ${member.getText()}`)
           }
       });
       }
-        // ts.forEachChild(node, (member) => {            
-        //     if (ts.isMethodDeclaration(member)) {
-        //         const methodName = member.name.getText();
-        //         if (methodName) {
-        //             console.log(methodName);
-        //             methodNames.push(methodName);  
-        //         }
-        //         member.parameters.forEach((param, index) => {
-        //           const paramName = param.name.getText();
-        //           const paramType = param.type?.getText();
-        //           fs.writeFile(classNameFile, ` Param ${index + 1}: ${paramName} (${paramType})` function(err: any) {
-        //             if (err) throw err;
-        //             console.log(err);
-        //             });
-        //           console.log(` Param ${index + 1}: ${paramName} (${paramType})`);
-        //           let interfaceNode = findInterfaceNode(sourceFile, paramType as string);
-        //           if (interfaceNode) {
-        //             console.log(` Interface ${interfaceNode.name.text}`);
-
-        //           }
-        //       });
-        //     }
-        // });
     }
-
     ts.forEachChild(node, visit);
 }
   return classNames;
@@ -105,7 +89,6 @@ function getClassMethodsWithSignature(sourceFile: ts.SourceFile): string[] {
 
 const fileContent = fs.readFileSync(apiFile, "utf8");
 
-// Step 2: Create the SourceFile
 const sourceFile = ts.createSourceFile(
   apiFile, // The file name
     fileContent, // The file content
