@@ -32,6 +32,11 @@ function createFile(fileName: string, text: string) {
 }
 
 
+function generateTest(): string {
+  return '';
+}
+
+
 function findInterfaceNode(sourceFile: ts.SourceFile, interfaceName: string): ts.InterfaceDeclaration | undefined {
   let foundInterface: ts.InterfaceDeclaration | undefined;
 
@@ -58,26 +63,31 @@ function getClassMethodsWithSignature(sourceFile: ts.SourceFile): string[] {
     if (ts.isClassDeclaration(node) && node.name) {
         const className = node.name.text;
         if (className) {    
-          const classNameFile = `${folderPath}/${className}`+'.ts';    
-          createFile(classNameFile, importCode);
+          const classNameFile = `${folderPath}/${className}`+'.test.ts'; 
+          let realImportCode = importCode.replace('^^^',className);
+          createFile(classNameFile, realImportCode);
         ts.forEachChild(node, (member) => {            
           if (ts.isMethodDeclaration(member)) {
               const methodName = member.name.getText();
               if (methodName) {
-                  append(classNameFile, ` Method ${methodName}`);
-                  methodNames.push(methodName);  
+                  //append(classNameFile, ` Method ${methodName}`);
+                  methodNames.push(methodName);
+
+              } else {
+                console.log('method is null!!!!!!');
               }
               member.parameters.forEach((param, index) => {
                 const paramName = param.name.getText();
                 const paramType = param.type?.getText();
-                append(classNameFile, ` Param ${index + 1}: ${paramName} (${paramType})`);
+                
+                //append(classNameFile, ` Param ${index + 1}: ${paramName} (${paramType})`);
                 let interfaceNode = findInterfaceNode(sourceFile, paramType as string);
                 if (interfaceNode) {
-                  append(classNameFile, ` Interface ${interfaceNode.name.text}`);
+                  //append(classNameFile, ` Interface ${interfaceNode.name.text}`);
                 }
             });
           } else {
-            console.log(`Why not a method? Example: ${member.getText()}`)
+            //console.log(`Why not a method? Example: ${member.getText()}`)
           }
       });
       }
